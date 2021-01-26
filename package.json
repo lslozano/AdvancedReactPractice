@@ -10,7 +10,8 @@
   "author": "lslozano",
   "license": "ISC",
   "dependencies": {
-    "apollo": "^2.32.0"
+    "apollo": "^2.32.0",
+    "apollo-server": "^2.19.2"
   },
   "devDependencies": {
     "nodemon": "^2.0.6"
