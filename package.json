@@ -11,7 +11,9 @@
   "license": "ISC",
   "dependencies": {
     "apollo": "^2.32.0",
-    "apollo-server": "^2.19.2"
+    "apollo-server": "^2.19.2",
+    "dotenv": "^8.2.0",
+    "mongoose": "^5.11.13"
   },
   "devDependencies": {
     "nodemon": "^2.0.6"
