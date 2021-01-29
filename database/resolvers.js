@@ -17,7 +17,10 @@ const createToken = (user, secret, expiresIn) => {
 const resolvers = {
   // Query with method that satisfies what's in the Schema.
   Query: {
-    obtainCourse: () => "String",
+    obtainUser: async (_, { token }) => {
+      const verifiedUser = jwt.verify(token, secret);
+      return verifiedUser;
+    }
   },
   Mutation: {
     newUser: async (_, { input }) => {
