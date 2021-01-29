@@ -1,4 +1,17 @@
 const User = require("../Models/User");
+const bcrypt = require("bcryptjs");
+require("dotenv").config();
+const jwt = require("jsonwebtoken");
+
+const secret = process.env.SECRET;
+
+const createToken = (user, secret, expiresIn) => {
+  const { id, name, lastName, email } = user;
+
+  // The jwt takes a payload. It takes the infor that will be added to the header of the
+  // jsonwebtoken.
+  return jwt.sign({ id, name, lastName, email }, secret, { expiresIn });
+}
 
 // Resolvers
 const resolvers = {
@@ -10,16 +23,14 @@ const resolvers = {
     newUser: async (_, { input }) => {
       const { email, password } = input;
 
-      // Review if user is already registered.
       const isUserRegistered = await User.findOne({ email });
-
       if (isUserRegistered) {
         throw new Error("The user is already registered.");
       }
 
-      // Hash password.
+      const salt = await bcrypt.genSalt(10);
+      input.password = await bcrypt.hash(password, salt);
 
-      // Save new user to DB.
       try {
         const newUser = new User(input);
 
@@ -28,10 +39,31 @@ const resolvers = {
         });
 
         return newUser;
-      } catch(error) {
+      } catch (error) {
         console.log(error);
       }
     },
+    authenticateUser: async (_, { input }) => {
+      const { email, password } = input;
+      let user = {};
+
+      const doesUserExist = await User.findOne({ email });
+      if (!doesUserExist) {
+        throw new Error("The user or password are incorrect.");
+      } else {
+        user = doesUserExist;
+      };
+
+      const isPasswordCorrect = await bcrypt.compare(password, user.password);
+      if (!isPasswordCorrect) {
+        throw new Error("The user or password are incorrect.");
+      }
+
+      // Create token.
+      return {
+        token: createToken(user, secret, "24h")
+      };
+    }
   },
 };
 
