@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 
 const User = require("../Models/User");
 const Product = require("../Models/Product");
+const Client = require("../Models/Client");
 
 const secret = process.env.SECRET;
 
@@ -60,7 +61,9 @@ const resolvers = {
         const newUser = new User(input);
 
         newUser.save((error) => {
-          if (error) `${error}. There was an error creating the user.`;
+          if (error) {
+            return `${error}. There was an error creating the user.`;
+          }
         });
 
         return newUser;
@@ -94,7 +97,9 @@ const resolvers = {
         const newProduct = new Product(input);
 
         newProduct.save((error) => {
-          if (error) `${error}. There was an error creating the product.`;
+          if (error) {
+            return `${error}. There was an error creating the product.`;
+          }
         });
 
         return newProduct;
@@ -126,6 +131,30 @@ const resolvers = {
       await Product.findByIdAndDelete(id);
 
       return "Product deleted.";
+    },
+    newClient: async (_, { input }, ctx) => {
+      console.log(ctx);
+      const { email } = input;
+
+      const isClientRegistered = await Client.findOne({ email});
+
+      if (isClientRegistered) {
+        throw new Error("Client already registered.");
+      };
+
+      const newClient = new Client(input);
+      newClient.seller = "6012ec2dc322816c091b5fd6";
+
+      try {
+        newClient.save(error => {
+          if (error) {
+            return `${error}. There was an error registering the client.`;
+          };
+        });
+        return newClient;
+      } catch(error) {
+        console.log(error);
+      };
     },
   },
 };
