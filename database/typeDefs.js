@@ -2,6 +2,7 @@ const { gql } = require("apollo-server");
 
 // Schema - Type definitions
 const typeDefs = gql`
+  # Data Types
   type User {
     id: ID
     name: String
@@ -29,10 +30,27 @@ const typeDefs = gql`
     seller: ID
   }
 
+  type Order {
+    id: ID
+    order: [OrderGroup]
+    total: Float
+    client: ID
+    seller: ID
+    date: String
+    state: OrderState
+  }
+
+  type OrderGroup {
+    id: ID
+    quantity: Int
+  }
+
+
   type Token {
     token: String
   }
 
+  # Input Types
   input UserInput {
     name: String!
     lastName: String!
@@ -59,6 +77,26 @@ const typeDefs = gql`
     phone: String
   }
 
+  input OrderProductInput {
+    id: ID
+    quantity: Int
+  }
+
+  input OrderInput {
+    order: [OrderProductInput]
+    total: Float!
+    client: ID!
+    state: OrderState
+  }
+
+  # Using an Enum to only accept certain values in an input property:
+  enum OrderState {
+    Pending
+    Complete
+    Canceled
+  }
+
+  # Queries
   type Query {
     # Users
     obtainUser(token: String!): User
@@ -73,6 +111,7 @@ const typeDefs = gql`
     obtainClient(id: ID!): Client
   }
 
+  # Mutations
   type Mutation {
     # Users
     newUser(input: UserInput): User
@@ -87,6 +126,9 @@ const typeDefs = gql`
     newClient(input: ClientInput): Client
     updateClient(id: ID!, input: ClientInput): Client
     deleteClient(id: ID!): String
+
+    # Orders
+    newOrder(input: OrderInput): Order
   }
 `;
 

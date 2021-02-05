@@ -64,11 +64,11 @@ const resolvers = {
     obtainClient: async (_, { id }, ctx) => {
       try {
         const client = await Client.findById(id);
-        
+
         if (client === undefined || client === null) {
           throw new Error("Client not found.");
-        };
-    
+        }
+
         if (client.seller.toString() !== ctx.user.id) {
           throw new Error("You do not have access to this information.");
         }
@@ -76,7 +76,7 @@ const resolvers = {
         return client;
       } catch (error) {
         console.log(error);
-      };
+      }
     },
   },
   Mutation: {
@@ -192,23 +192,23 @@ const resolvers = {
     updateClient: async (_, { id, input }, ctx) => {
       try {
         let client = await Client.findById(id);
-        
+
         if (client === undefined || client === null) {
           throw new Error("Client not found.");
-        };
-    
+        }
+
         if (client.seller.toString() !== ctx.user.id) {
           throw new Error("You do not have access to this information.");
         }
 
         client = await Client.findOneAndUpdate({ _id: id }, input, {
-          new: true
-        })
+          new: true,
+        });
 
         return client;
       } catch (error) {
         console.log(error);
-      };
+      }
     },
     deleteClient: async (_, { id }, ctx) => {
       try {
@@ -216,7 +216,7 @@ const resolvers = {
 
         if (client === undefined || client === null) {
           throw new Error("Client not found.");
-        };
+        }
 
         if (client.seller.toString() !== ctx.user.id) {
           throw new Error("You do not have access to this information.");
@@ -227,7 +227,37 @@ const resolvers = {
       } catch (error) {
         console.log(error);
       }
-    }
+    },
+    newOrder: async (_, { input }, ctx) => {
+      const { client } = input;
+
+      try {
+        // Verify if client exists or no.
+        const doesClientExists = await Client.findById(client);
+
+        if (doesClientExists === undefined || doesClientExists === null) {
+          throw new Error("Client is not registered.");
+        };
+
+        if (doesClientExists.seller.toString() !== ctx.user.id) {
+          throw new Error("You do not have access to this option.");
+        };
+
+        if (doesClientExists.seller.toString() === ctx.user.id) {
+          console.log("You have the correct credentials to do this operation.");
+        };
+      } catch (error) {
+        console.log(error);
+      }
+
+      // Verify if client is from the seller.
+
+      // Verify if stock is available.
+
+      // Assign a seller.
+
+      // Save it to database.
+    },
   },
 };
 
