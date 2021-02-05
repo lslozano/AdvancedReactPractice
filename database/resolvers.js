@@ -35,6 +35,7 @@ const resolvers = {
     obtainProduct: async (_, { id }) => {
       try {
         const product = await Product.findById(id);
+
         if (!product) {
           throw new Error("Product not found.");
         }
@@ -43,6 +44,39 @@ const resolvers = {
       } catch (error) {
         console.log(error);
       }
+    },
+    obtainClients: async () => {
+      try {
+        const clients = await Client.find({});
+        return clients;
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    obtainClientsPerSeller: async (_, {}, ctx) => {
+      try {
+        const clients = await Client.find({ seller: ctx.user.id.toString() });
+        return clients;
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    obtainClient: async (_, { id }, ctx) => {
+      try {
+        const client = await Client.findById(id);
+        
+        if (client === undefined || client === null) {
+          throw new Error("Client not found.");
+        };
+    
+        if (client.seller.toString() !== ctx.user.id) {
+          throw new Error("You do not have access to this information.");
+        }
+
+        return client;
+      } catch (error) {
+        console.log(error);
+      };
     },
   },
   Mutation: {
@@ -133,29 +167,67 @@ const resolvers = {
       return "Product deleted.";
     },
     newClient: async (_, { input }, ctx) => {
-      console.log(ctx);
       const { email } = input;
 
-      const isClientRegistered = await Client.findOne({ email});
+      const isClientRegistered = await Client.findOne({ email });
 
       if (isClientRegistered) {
         throw new Error("Client already registered.");
-      };
+      }
 
       const newClient = new Client(input);
-      newClient.seller = "6012ec2dc322816c091b5fd6";
+      newClient.seller = ctx.user.id;
 
       try {
-        newClient.save(error => {
+        newClient.save((error) => {
           if (error) {
             return `${error}. There was an error registering the client.`;
-          };
+          }
         });
         return newClient;
-      } catch(error) {
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    updateClient: async (_, { id, input }, ctx) => {
+      try {
+        let client = await Client.findById(id);
+        
+        if (client === undefined || client === null) {
+          throw new Error("Client not found.");
+        };
+    
+        if (client.seller.toString() !== ctx.user.id) {
+          throw new Error("You do not have access to this information.");
+        }
+
+        client = await Client.findOneAndUpdate({ _id: id }, input, {
+          new: true
+        })
+
+        return client;
+      } catch (error) {
         console.log(error);
       };
     },
+    deleteClient: async (_, { id }, ctx) => {
+      try {
+        const client = await Client.findById(id);
+
+        if (client === undefined || client === null) {
+          throw new Error("Client not found.");
+        };
+
+        if (client.seller.toString() !== ctx.user.id) {
+          throw new Error("You do not have access to this information.");
+        }
+
+        await Client.findByIdAndDelete(id);
+        return "Client deleted.";
+      } catch (error) {
+        console.log(error);
+      }
+    }
   },
 };
 
