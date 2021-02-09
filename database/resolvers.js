@@ -1,10 +1,11 @@
-const bcrypt = require("bcryptjs");
 require("dotenv").config();
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const User = require("../Models/User");
 const Product = require("../Models/Product");
 const Client = require("../Models/Client");
+const Order = require("../Models/Order");
 
 const secret = process.env.SECRET;
 
@@ -239,24 +240,48 @@ const resolvers = {
           throw new Error("Client is not registered.");
         };
 
+        // Verify if client is from the seller.
         if (doesClientExists.seller.toString() !== ctx.user.id) {
           throw new Error("You do not have access to this option.");
         };
 
-        if (doesClientExists.seller.toString() === ctx.user.id) {
-          console.log("You have the correct credentials to do this operation.");
-        };
+        // Verify if stock is available.
+        for await ( const article of input.order ) {
+          const { id } = article;
+
+          const product = await Product.findById(id);
+
+          if (article.quantity > product.stock) {
+            throw new Error(`The article: ${product.name} exceeds the available stock.`);
+          } else {
+            // Substract the order number to the stock.
+            product.stock = product.stock - article.quantity;
+
+            await product.save(error => {
+              if (error ) {
+                return `${error}. There was an error saving the new changes to the stock.`;
+              }
+            });
+          };
+        }
+
+        // Create a new order.
+        const newOrder = new Order(input);
+      
+        // Assign a seller.
+        newOrder.seller = ctx.user.id;
+  
+        // Save it to database.
+        const newOrderSaved = newOrder.save(error => {
+          if (error) {
+            return `${error}. There was an error registering the new order.`;
+          }
+        });
+
+        return newOrderSaved;
       } catch (error) {
         console.log(error);
-      }
-
-      // Verify if client is from the seller.
-
-      // Verify if stock is available.
-
-      // Assign a seller.
-
-      // Save it to database.
+      };
     },
   },
 };
