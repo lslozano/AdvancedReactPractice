@@ -79,6 +79,38 @@ const resolvers = {
         console.log(error);
       }
     },
+    obtainOrders: async () => {
+      try {
+        const orders = await Order.find({});
+        return orders
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    obtainOrdersPerSeller: async (_, {}, ctx) => {
+      try {
+        const orders = await Order.find({ seller: ctx.user.id });
+        return orders;
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    obtainOrder: async (_, { id }, ctx) => {
+      // Verify if order exists.
+      const order = await Order.findById(id);
+
+      if (order === undefined || order === null) {
+        throw new Error("Order not found.");
+      }
+
+      // Only the one who created it can see it.
+      if (order.seller.toString() !== ctx.user.id) {
+        throw new Error("You do not have access to this information.");
+      }
+
+      // Return the result.
+      return order;
+    }
   },
   Mutation: {
     newUser: async (_, { input }) => {
