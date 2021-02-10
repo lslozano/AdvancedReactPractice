@@ -12,7 +12,7 @@ const secret = process.env.SECRET;
 const createToken = (user, secret, expiresIn) => {
   const { id, name, lastName, email } = user;
 
-  // The jwt takes a payload. It takes the infor that will be added to the header of the
+  // The jwt takes a payload. It takes the information that will be added to the header of the
   // jsonwebtoken.
   return jwt.sign({ id, name, lastName, email }, secret, { expiresIn });
 };
@@ -96,25 +96,33 @@ const resolvers = {
       }
     },
     obtainOrder: async (_, { id }, ctx) => {
-      // Verify if order exists.
-      const order = await Order.findById(id);
-
-      if (order === undefined || order === null) {
-        throw new Error("Order not found.");
+      try {
+        // Verify if order exists.
+        const order = await Order.findById(id);
+  
+        if (order === undefined || order === null) {
+          throw new Error("Order not found.");
+        }
+  
+        // Only the one who created it can see it.
+        if (order.seller.toString() !== ctx.user.id) {
+          throw new Error("You do not have access to this information.");
+        }
+  
+        // Return the result.
+        return order;
+      } catch (error) {
+        console.log(error);
       }
-
-      // Only the one who created it can see it.
-      if (order.seller.toString() !== ctx.user.id) {
-        throw new Error("You do not have access to this information.");
-      }
-
-      // Return the result.
-      return order;
     },
     obtainOrdersByState: async (_, { state }, ctx) => {
-      const orders = await Order.find({ seller: ctx.user.id, state });
-
-      return orders;
+      try {
+        const orders = await Order.find({ seller: ctx.user.id, state });
+  
+        return orders;
+      } catch (error) {
+        console.log(error);
+      }
     }
   },
   Mutation: {
@@ -122,7 +130,7 @@ const resolvers = {
       const { email, password } = input;
 
       const isUserRegistered = await User.findOne({ email });
-      if (isUserRegistered) {
+      if (isUserRegistered !== undefined || isUserRegistered !== null) {
         throw new Error("The user is already registered.");
       }
 
@@ -147,22 +155,26 @@ const resolvers = {
       const { email, password } = input;
       let user = {};
 
-      const doesUserExist = await User.findOne({ email });
-      if (!doesUserExist) {
-        throw new Error("The user or password are incorrect.");
-      } else {
-        user = doesUserExist;
+      try {
+        const doesUserExist = await User.findOne({ email });
+        if (doesUserExist === undefined || doesUserExist === null) {
+          throw new Error("The user or password are incorrect.");
+        } else {
+          user = doesUserExist;
+        }
+  
+        const isPasswordCorrect = await bcrypt.compare(password, user.password);
+        if (!isPasswordCorrect) {
+          throw new Error("The user or password are incorrect.");
+        }
+  
+        // Create token.
+        return {
+          token: createToken(user, secret, "24h"),
+        };
+      } catch (error) {
+        console.log(error);
       }
-
-      const isPasswordCorrect = await bcrypt.compare(password, user.password);
-      if (!isPasswordCorrect) {
-        throw new Error("The user or password are incorrect.");
-      }
-
-      // Create token.
-      return {
-        token: createToken(user, secret, "24h"),
-      };
     },
     newProduct: (_, { input }) => {
       try {
@@ -180,29 +192,37 @@ const resolvers = {
       }
     },
     updateProduct: async (_, { id, input }) => {
-      let product = await Product.findById(id);
-
-      if (!product) {
-        throw new Error("Product not found.");
-      }
-
-      // Save it with new values in db.
-      product = await Product.findOneAndUpdate({ _id: id }, input, {
-        new: true,
-      });
-
-      return product;
+      try {
+        let product = await Product.findById(id);
+  
+        if (product === undefined || product === null) {
+          throw new Error("Product not found.");
+        }
+  
+        // Save it with new values in db.
+        product = await Product.findOneAndUpdate({ _id: id }, input, {
+          new: true,
+        });
+  
+        return product;
+      } catch (error) {
+        console.log(error);
+      };
     },
     deleteProduct: async (_, { id }) => {
-      let product = await Product.findById(id);
-
-      if (!product) {
-        throw new Error("Product not found.");
+      try {
+        let product = await Product.findById(id);
+  
+        if (product === undefined || product === null) {
+          throw new Error("Product not found.");
+        }
+  
+        await Product.findByIdAndDelete(id);
+  
+        return "Product deleted.";
+      } catch (error) {
+        console.log(error);
       }
-
-      await Product.findByIdAndDelete(id);
-
-      return "Product deleted.";
     },
     newClient: async (_, { input }, ctx) => {
       const { email } = input;
@@ -321,66 +341,74 @@ const resolvers = {
       };
     },
     updateOrder: async (_, { id, input }, ctx) => {
-      const { client } = input;
-
-      // Verify if order exists.
-      const doesOrderExists = await Order.findById(id);
-
-      if (doesOrderExists === undefined || doesOrderExists === null) {
-        throw new Error("The order doesn't exist.")
-      }
-
-      // Verify if client exists.
-      const doesClientExist = await Client.findById(client);
-
-      if (doesClientExist === undefined || doesClientExist === null) {
-        throw new Error("The client doesn't exist.")
-      };
-
-      // Verify if client and order is from seller.
-      if (doesClientExist.seller.toString() !== ctx.user.id) {
-        throw new Error("You do not have the credentials to do this operation.");
-      };
-
-      // Review stock
-      if (input.order) {
-        for await ( const article of input.order ) {
-          const { id } = article;
+      try {
+        const { client } = input;
   
-          const product = await Product.findById(id);
+        // Verify if order exists.
+        const doesOrderExists = await Order.findById(id);
   
-          if (article.quantity > product.stock) {
-            throw new Error(`The article: ${product.name} exceeds the available stock.`);
-          } else {
-            // Substract the order number to the stock.
-            product.stock = product.stock - article.quantity;
+        if (doesOrderExists === undefined || doesOrderExists === null) {
+          throw new Error("The order doesn't exist.")
+        }
   
-            await product.save(error => {
-              if (error ) {
-                return `${error}. There was an error saving the new changes to the stock.`;
-              }
-            });
+        // Verify if client exists.
+        const doesClientExist = await Client.findById(client);
+  
+        if (doesClientExist === undefined || doesClientExist === null) {
+          throw new Error("The client doesn't exist.")
+        };
+  
+        // Verify if client and order is from seller.
+        if (doesClientExist.seller.toString() !== ctx.user.id) {
+          throw new Error("You do not have the credentials to do this operation.");
+        };
+  
+        // Review stock
+        if (input.order) {
+          for await ( const article of input.order ) {
+            const { id } = article;
+    
+            const product = await Product.findById(id);
+    
+            if (article.quantity > product.stock) {
+              throw new Error(`The article: ${product.name} exceeds the available stock.`);
+            } else {
+              // Substract the order number to the stock.
+              product.stock = product.stock - article.quantity;
+    
+              await product.save(error => {
+                if (error ) {
+                  return `${error}. There was an error saving the new changes to the stock.`;
+                }
+              });
+            };
           };
         };
+  
+        // Save the update on the order.
+        const updateOrder = await Order.findOneAndUpdate({ _id: id }, input, { new: true });
+        return updateOrder;
+      } catch (error) {
+        console.log(error);
       };
-
-      // Save the update on the order.
-      const updateOrder = await Order.findOneAndUpdate({ _id: id }, input, { new: true });
-      return updateOrder;
     },
     deleteOrder: async (_, { id }, ctx) => {
-      const order = await Order.findById(id);
+      try {
+        const order = await Order.findById(id);
 
-      if (order === undefined || order === null) {
-        throw new Error("The order doesn't exist.");
+        if (order === undefined || order === null) {
+          throw new Error("The order doesn't exist.");
+        };
+  
+        if (order.seller.toString() !== ctx.user.id) {
+          throw new Error("You do not have the credentials to do that.");
+        };
+  
+        await Order.findByIdAndDelete(id);
+        return "The order has been deleted.";
+      } catch (error) {
+        console.log(error);
       };
-
-      if (order.seller.toString() !== ctx.user.id) {
-        throw new Error("You do not have the credentials to do that.");
-      };
-
-      await Order.findByIdAndDelete(id);
-      return "The order has been deleted.";
     }
   },
 };
