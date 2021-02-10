@@ -110,6 +110,11 @@ const resolvers = {
 
       // Return the result.
       return order;
+    },
+    obtainOrdersByState: async (_, { state }, ctx) => {
+      const orders = await Order.find({ seller: ctx.user.id, state });
+
+      return orders;
     }
   },
   Mutation: {
@@ -315,6 +320,68 @@ const resolvers = {
         console.log(error);
       };
     },
+    updateOrder: async (_, { id, input }, ctx) => {
+      const { client } = input;
+
+      // Verify if order exists.
+      const doesOrderExists = await Order.findById(id);
+
+      if (doesOrderExists === undefined || doesOrderExists === null) {
+        throw new Error("The order doesn't exist.")
+      }
+
+      // Verify if client exists.
+      const doesClientExist = await Client.findById(client);
+
+      if (doesClientExist === undefined || doesClientExist === null) {
+        throw new Error("The client doesn't exist.")
+      };
+
+      // Verify if client and order is from seller.
+      if (doesClientExist.seller.toString() !== ctx.user.id) {
+        throw new Error("You do not have the credentials to do this operation.");
+      };
+
+      // Review stock
+      if (input.order) {
+        for await ( const article of input.order ) {
+          const { id } = article;
+  
+          const product = await Product.findById(id);
+  
+          if (article.quantity > product.stock) {
+            throw new Error(`The article: ${product.name} exceeds the available stock.`);
+          } else {
+            // Substract the order number to the stock.
+            product.stock = product.stock - article.quantity;
+  
+            await product.save(error => {
+              if (error ) {
+                return `${error}. There was an error saving the new changes to the stock.`;
+              }
+            });
+          };
+        };
+      };
+
+      // Save the update on the order.
+      const updateOrder = await Order.findOneAndUpdate({ _id: id }, input, { new: true });
+      return updateOrder;
+    },
+    deleteOrder: async (_, { id }, ctx) => {
+      const order = await Order.findById(id);
+
+      if (order === undefined || order === null) {
+        throw new Error("The order doesn't exist.");
+      };
+
+      if (order.seller.toString() !== ctx.user.id) {
+        throw new Error("You do not have the credentials to do that.");
+      };
+
+      await Order.findByIdAndDelete(id);
+      return "The order has been deleted.";
+    }
   },
 };
 
