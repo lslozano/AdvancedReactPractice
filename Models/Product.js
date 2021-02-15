@@ -21,4 +21,6 @@ const productSchema = new Schema({
   }
 });
 
+productSchema.index({ name: "text" });
+
 module.exports = model("Product", productSchema);
