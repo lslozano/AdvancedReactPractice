@@ -185,8 +185,8 @@ const resolvers = {
     },
     obtainProduct: async (_, { text }) => {
       try {
-        const products = await Product.find({ $text: { $search: text } });
-        
+        const products = await Product.find({ $text: { $search: text } }).limit(10);
+
         return products;
       } catch (error) {
         console.log(error);
