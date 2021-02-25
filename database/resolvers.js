@@ -198,7 +198,8 @@ const resolvers = {
       const { email, password } = input;
 
       const isUserRegistered = await User.findOne({ email });
-      if (isUserRegistered !== undefined || isUserRegistered !== null) {
+
+      if (isUserRegistered !== undefined && isUserRegistered !== null) {
         throw new Error("The user is already registered.");
       }
 
@@ -223,25 +224,23 @@ const resolvers = {
       const { email, password } = input;
       let user = {};
 
-      try {
-        const doesUserExist = await User.findOne({ email });
-        if (doesUserExist === undefined || doesUserExist === null) {
-          throw new Error("The user or password are incorrect.");
-        } else {
-          user = doesUserExist;
-        }
+      const doesUserExist = await User.findOne({ email });
 
-        const isPasswordCorrect = await bcrypt.compare(password, user.password);
-        if (!isPasswordCorrect) {
-          throw new Error("The user or password are incorrect.");
-        }
+      // if (doesUserExist === undefined || doesUserExist === null) {
+      if (!doesUserExist) {
+        throw new Error("The user or password are incorrect.");
+      }
 
-        // Create token.
-        return {
-          token: createToken(user, secret, "24h"),
-        };
-      } catch (error) {
-        console.log(error);
+      user = doesUserExist;
+
+      const isPasswordCorrect = await bcrypt.compare(password, user.password);
+      if (!isPasswordCorrect) {
+        throw new Error("The user or password are incorrect.");
+      }
+
+      // Create token.
+      return {
+        token: createToken(user, secret, "24h"),
       }
     },
     newProduct: (_, { input }) => {
