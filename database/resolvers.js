@@ -21,9 +21,8 @@ const createToken = (user, secret, expiresIn) => {
 const resolvers = {
   // Query with method that satisfies what's in the Schema.
   Query: {
-    obtainUser: async (_, { token }) => {
-      const verifiedUser = jwt.verify(token, secret);
-      return verifiedUser;
+    obtainUser: async (_, {}, ctx) => {
+      return ctx.user;
     },
     obtainProducts: async () => {
       try {

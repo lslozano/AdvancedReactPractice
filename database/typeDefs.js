@@ -108,7 +108,7 @@ const typeDefs = gql`
   # Queries
   type Query {
     # Users
-    obtainUser(token: String!): User
+    obtainUser: User
 
     # Products
     obtainProducts: [Product]
