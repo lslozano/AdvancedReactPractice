@@ -54,11 +54,17 @@ const resolvers = {
       }
     },
     obtainClientsPerSeller: async (_, {}, ctx) => {
+
+      if (ctx.user === undefined) {
+        throw new Error("No user authenticated.");
+      }
+
       try {
         const clients = await Client.find({ seller: ctx.user.id.toString() });
         return clients;
       } catch (error) {
         console.log(error);
+        throw new Error("Clients per seller not found.");
       }
     },
     obtainClient: async (_, { id }, ctx) => {
